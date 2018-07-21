@@ -14,7 +14,6 @@ void Intel8008::step() {
     execute(read());
 }
 
-// TODO: parity, zero, sign flags
 void Intel8008::execute(uint8_t opcode) {
     registers.pc += 1; // go ahead and move the program counter up for future reads
     switch (opcode & 0b11000000) { // check the first two bits of the opcode to cut down on unnecessary comparisons
