@@ -172,16 +172,156 @@ void Intel8008::execute(uint8_t opcode) {
             break;
         } // case 0b00 << 6
         case 0b01 << 6:
-            unknownOpcode(opcode);
-            break;
+            switch (opcode & 0b111) {
+                case 0b100: {
+                    // JMP - jump
+                    uint8_t low = read();
+                    registers.pc++;
+                    uint8_t high = read();
+                    registers.pc = (high << 8) | low;
+                    break;
+                }
+                case 0b000: {
+                    // Jxc - jump if condition
+                    bool condition = bool(opcode & 0b00100000 >> 5);
+                    bool flag = *registers.flagArray[(opcode & 0b00011000) >> 3];
+                    uint8_t low = read();
+                    registers.pc++;
+                    uint8_t high = read();
+                    registers.pc++;
+                    if (flag == condition) registers.pc = (high << 8) | low;
+                    break;
+                }
+                case 0b110: {
+                    // CAL - call
+                    uint8_t low = read();
+                    registers.pc++;
+                    uint8_t high = read();
+                    registers.pc++;
+                    push(registers.pc);
+                    registers.pc = (high << 8) | low;
+                    break;
+                }
+                case 0b010: {
+                    // Cxc - call if condition
+                    bool condition = bool(opcode & 0b00100000 >> 5);
+                    bool flag = *registers.flagArray[(opcode & 0b00011000) >> 3];
+                    uint8_t low = read();
+                    registers.pc++;
+                    uint8_t high = read();
+                    registers.pc++;
+                    if (flag == condition) {
+                        push(registers.pc);
+                        registers.pc = (high << 8) | low;
+                    }
+                    break;
+                }
+                default: {
+                    if (opcode & 1 == 1) {
+                        if (opcode & 0b00110000 == 0) {
+                            // INP - read input into accumulator
+                            // TODO
+                        } else {
+                            // OUT - output accumulator contents
+                            // TODO
+                        }
+                    } else {
+                        unknownOpcode(opcode);
+                    }
+                    break;
+                }
+            }
         case 0b10 << 6:
-            unknownOpcode(opcode);
-            break;
+            // All of these instructions rely on opcode & 0b111 as a register value, which can be 111 for the memory at M.
+            // These all set the accumulator, not the register read from (unless that register is the accumulator)
+            uint8_t sourceValue;
+            if (opcode & 0b111 == 0b111) {
+                sourceValue = memory[registers.getM()];
+            } else {
+                sourceValue = *registers.registerArray[opcode & 0b111];
+            }
+            uint8_t initialAccumulator = registers.a;
+            switch ((opcode & 0b00111000) >> 3) {
+                case 0b000: {
+                    // ADr - A += sourceValue with carry
+                    registers.a += sourceValue;
+                    updateFlags(registers.a);
+                    registers.carry = registers.a < initialAccumulator;
+                    break;
+                }
+                case 0b001: {
+                    // ACr - A += sourceValue + carry with carry
+                    registers.a += sourceValue + uint8_t(registers.carry);
+                    updateFlags(registers.a);
+                    registers.carry = registers.a < initialAccumulator;
+                    break;
+                }
+                case 0b010: {
+                    // SUr = A -= sourceValue with borrow
+                    /* FIXME:
+                     * I picked up the borrow flag solution off good old Wikipedia so it might be wrong.
+                     * The 8080 series uses this method, but this CPU uses two's complement subtraction according
+                     * to the manual, which matches the 6502 and PowerPC's behaviour instead.
+                     */
+                    registers.a -= sourceValue;
+                    updateFlags(registers.a);
+                    registers.carry =  initialAccumulator < sourceValue;
+                    break;
+                }
+                case 0b011: {
+                    // SUr = A = A - sourceValue - borrow with borrow
+                    // FIXME: see above
+                    registers.a = registers.a - sourceValue - uint8_t(registers.carry);
+                    updateFlags(registers.a);
+                    registers.carry =  initialAccumulator < sourceValue;
+                    break;
+                }
+                case 0b100 : {
+                    // NDr - A &= sourceValue, carry unset
+                    registers.a &= sourceValue;
+                    updateFlags(registers.a);
+                    registers.carry = false;
+                    break;
+                }
+                case 0b101 : {
+                    // XRr - A ^= sourceValue, carry unset
+                    registers.a ^= sourceValue;
+                    updateFlags(registers.a);
+                    registers.carry = false;
+                    break;
+                }
+                case 0b110 : {
+                    // ORr - A |= sourceValue, carry unset
+                    registers.a |= sourceValue;
+                    updateFlags(registers.a);
+                    registers.carry = false;
+                    break;
+                }
+                case 0b111 : {
+                    // CPr - Update flags based on A - sourceValue, A doesn't change, carry unset
+                    updateFlags(registers.a - sourceValue);
+                    registers.carry = false;
+                    break;
+                }
+                default:
+                    unknownOpcode(opcode);
+                    break;
+            }
         case 0b11 << 6:
             if (opcode == 0xff) {
                 halt(); // HLT - halt
+            } else if (opcode & 0b111 == 0b111) {
+                // LrM - load byte in RAM at address M to register
+                *registers.registerArray[opcode & 0b00111000 >> 3] = memory.at(registers.getM());
+            } else if ((opcode & 0b00111000) >> 3 == 0b111) {
+                // LMr - dump register to memory address M
+                memory.at(registers.getM()) = *registers.registerArray[opcode & 0b111];
             } else {
-                unknownOpcode(opcode);
+                // Lr1r2 - copy contents of register 2 into register 1
+                int src = opcode & 0b111;
+                int dest = opcode & 0b00111000 >> 3;
+                if (src == dest) break; // copying register to itself, nop
+                *registers.registerArray[dest] = *registers.registerArray[src];
             }
             break;
         default: // ?!?!?!??!!?
