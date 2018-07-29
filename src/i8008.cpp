@@ -148,7 +148,8 @@ void Intel8008::execute(uint8_t opcode) {
                     case 0b011: {
                         // conditional return
                         bool condition;
-                        condition = *registers.flagArray[opcode & 0b00011000]; // condition is encoded in the fourth and fifth bytes
+                        condition = *registers.flagArray[opcode &
+                                                         0b00011000]; // condition is encoded in the fourth and fifth bytes
                         if (opcode & 0b00100000 == 1) {
                             // RT - return if true
                             if (condition) registers.pc = pop();
@@ -171,7 +172,7 @@ void Intel8008::execute(uint8_t opcode) {
             } // else
             break;
         } // case 0b00 << 6
-        case 0b01 << 6:
+        case 0b01 << 6: {
             switch (opcode & 0b111) {
                 case 0b100: {
                     // JMP - jump
@@ -231,7 +232,9 @@ void Intel8008::execute(uint8_t opcode) {
                     break;
                 }
             }
-        case 0b10 << 6:
+            break;
+        } // case 0b01 << 6
+        case 0b10 << 6: {
             // All of these instructions rely on opcode & 0b111 as a register value, which can be 111 for the memory at M.
             // These all set the accumulator, not the register read from (unless that register is the accumulator)
             uint8_t sourceValue;
@@ -265,7 +268,7 @@ void Intel8008::execute(uint8_t opcode) {
                      */
                     registers.a -= sourceValue;
                     updateFlags(registers.a);
-                    registers.carry =  initialAccumulator < sourceValue;
+                    registers.carry = initialAccumulator < sourceValue;
                     break;
                 }
                 case 0b011: {
@@ -273,7 +276,7 @@ void Intel8008::execute(uint8_t opcode) {
                     // FIXME: see above
                     registers.a = registers.a - sourceValue - uint8_t(registers.carry);
                     updateFlags(registers.a);
-                    registers.carry =  initialAccumulator < sourceValue;
+                    registers.carry = initialAccumulator < sourceValue;
                     break;
                 }
                 case 0b100 : {
@@ -307,7 +310,9 @@ void Intel8008::execute(uint8_t opcode) {
                     unknownOpcode(opcode);
                     break;
             }
-        case 0b11 << 6:
+            break;
+        } // case 0b10 << 6
+        case 0b11 << 6: {
             if (opcode == 0xff) {
                 halt(); // HLT - halt
             } else if (opcode & 0b111 == 0b111) {
@@ -324,6 +329,7 @@ void Intel8008::execute(uint8_t opcode) {
                 *registers.registerArray[dest] = *registers.registerArray[src];
             }
             break;
+        }
         default: // ?!?!?!??!!?
             unknownOpcode(opcode);
             break;
