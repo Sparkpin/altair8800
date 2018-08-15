@@ -35,6 +35,8 @@ void Monitor::run() {
             cpu.step();
         } else if (splitCommand[0] == "load" || splitCommand[0] == "l") {
             load(splitCommand);
+        } else if (splitCommand[0] == "pc") {
+            std::cout << std::hex << (int)cpu.registers.pc << std::dec << std::endl;
         } else {
             std::cout << "Unknown command. Type \"help\" for a list of valid commands." << std::endl;
         }
@@ -223,6 +225,10 @@ void Monitor::help(const std::string& topic) {
         std::cout << "load (also l)" << std::endl;
         std::cout << "USAGE:" << std::endl;
         std::cout << "  load [filename] -- load a file into memory starting at 0x00" << std::endl;
+    } else if (topic == "pc") {
+        std::cout << "pc" << std::endl;
+        std::cout << "USAGE:" << std::endl;
+        std::cout << "  pc -- see the current address in the program counter" << std::endl;
     } else {
         std::cout << "No help available for " << topic << std::endl;
     }

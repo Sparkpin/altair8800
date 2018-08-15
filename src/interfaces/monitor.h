@@ -6,7 +6,7 @@
 #include "../i8008.h"
 
 constexpr char MONITOR_PROMPT[] = "> ";
-const std::string LISTED_COMMANDS[] {"help", "quit", "examine", "deposit", "depositnext", "dump", "step", "load"};
+const std::string LISTED_COMMANDS[] {"help", "quit", "examine", "deposit", "depositnext", "dump", "step", "load", "pc"};
 
 class Monitor {
     public:
