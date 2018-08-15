@@ -337,12 +337,12 @@ void Intel8008::execute(uint8_t opcode) {
 }
 
 void Intel8008::halt() {
-    std::cout << "HALT";
+    std::cout << "HALT" << std::endl;
     halted = true;
 }
 
 void Intel8008::unknownOpcode(uint8_t opcode) {
-    std::cerr << "Unknown opcode " << opcode << std::endl;
+    std::cerr << std::hex << "Unknown opcode " << (int)opcode << " at 0x" << registers.pc - 1 << std::dec << std::endl;
 }
 
 /**
